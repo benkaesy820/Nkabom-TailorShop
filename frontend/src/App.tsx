@@ -27,6 +27,7 @@ import {
   NkabomLogo,
   NkabomResponsiveLogo,
 } from "@/components/brand/nkabom-logo"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { SellerApplication } from "@/components/seller-application"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -73,6 +74,7 @@ import {
   type Account,
 } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { AdminOverviewPage } from "@/pages/admin/admin-overview-page"
 
 const navigation = [
   {
@@ -1267,6 +1269,23 @@ export function App() {
     return (
       <TooltipProvider delayDuration={250}>
         <AuthPage key={authMode} mode={authMode} onAuthenticated={setAccount} />
+      </TooltipProvider>
+    )
+  }
+
+  if (routeHash === "#admin/overview") {
+    return (
+      <TooltipProvider delayDuration={250}>
+        <AdminLayout
+          account={account}
+          onSignOut={() => {
+            void handleSignOut().then(() => {
+              window.location.hash = "#discover"
+            })
+          }}
+        >
+          <AdminOverviewPage />
+        </AdminLayout>
       </TooltipProvider>
     )
   }
