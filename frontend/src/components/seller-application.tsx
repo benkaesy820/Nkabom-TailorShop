@@ -433,43 +433,45 @@ type StepProps = {
 function CraftStep({ draft, errors, update }: StepProps) {
   return (
     <FieldGroup>
-      <Field data-invalid={Boolean(errors.primaryCategory)}>
-        <FieldLabel>Primary craft *</FieldLabel>
-        <Select
-          value={draft.primaryCategory ?? ""}
-          onValueChange={(value) => update("primaryCategory", value)}
-        >
-          <SelectTrigger aria-invalid={Boolean(errors.primaryCategory)}>
-            <SelectValue placeholder="Choose a craft" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {categories.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FieldError>{errors.primaryCategory}</FieldError>
-      </Field>
-      <Field data-invalid={Boolean(errors.specialities)}>
-        <FieldLabel htmlFor="specialities">Specialities *</FieldLabel>
-        <Input
-          id="specialities"
-          aria-invalid={Boolean(errors.specialities)}
-          value={draft.specialities.join(", ")}
-          onChange={(event) =>
-            update("specialities", splitList(event.target.value))
-          }
-          placeholder="Bespoke suits, bridal wear"
-        />
-        <FieldDescription>
-          Separate multiple specialities with commas.
-        </FieldDescription>
-        <FieldError>{errors.specialities}</FieldError>
-      </Field>
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <Field data-invalid={Boolean(errors.primaryCategory)}>
+          <FieldLabel>Primary craft *</FieldLabel>
+          <Select
+            value={draft.primaryCategory ?? ""}
+            onValueChange={(value) => update("primaryCategory", value)}
+          >
+            <SelectTrigger aria-invalid={Boolean(errors.primaryCategory)}>
+              <SelectValue placeholder="Choose a craft" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {categories.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <FieldError>{errors.primaryCategory}</FieldError>
+        </Field>
+        <Field data-invalid={Boolean(errors.specialities)}>
+          <FieldLabel htmlFor="specialities">Specialities *</FieldLabel>
+          <Input
+            id="specialities"
+            aria-invalid={Boolean(errors.specialities)}
+            value={draft.specialities.join(", ")}
+            onChange={(event) =>
+              update("specialities", splitList(event.target.value))
+            }
+            placeholder="Bespoke suits, bridal wear"
+          />
+          <FieldDescription>
+            Separate multiple specialities with commas.
+          </FieldDescription>
+          <FieldError>{errors.specialities}</FieldError>
+        </Field>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field data-invalid={Boolean(errors.yearsOfExperience)}>
           <FieldLabel htmlFor="experience">Years of experience *</FieldLabel>
@@ -616,18 +618,29 @@ function BusinessStep({
           <FieldError>{errors.city}</FieldError>
         </Field>
       </div>
-      <Field data-invalid={Boolean(errors.address)}>
-        <FieldLabel htmlFor="address">
-          Workshop or operating address *
-        </FieldLabel>
-        <Textarea
-          id="address"
-          aria-invalid={Boolean(errors.address)}
-          value={draft.address ?? ""}
-          onChange={(event) => update("address", event.target.value)}
-        />
-        <FieldError>{errors.address}</FieldError>
-      </Field>
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        <Field data-invalid={Boolean(errors.address)}>
+          <FieldLabel htmlFor="address">
+            Workshop or operating address *
+          </FieldLabel>
+          <Textarea
+            id="address"
+            aria-invalid={Boolean(errors.address)}
+            value={draft.address ?? ""}
+            onChange={(event) => update("address", event.target.value)}
+          />
+          <FieldError>{errors.address}</FieldError>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="areas">Service areas</FieldLabel>
+          <Textarea
+            id="areas"
+            value={draft.serviceAreas ?? ""}
+            onChange={(event) => update("serviceAreas", event.target.value)}
+            placeholder="Accra, Tema and nearby areas"
+          />
+        </Field>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field data-invalid={Boolean(errors.phone)}>
           <FieldLabel htmlFor="phone">Phone number *</FieldLabel>
@@ -648,14 +661,6 @@ function BusinessStep({
           />
         </Field>
       </div>
-      <Field>
-        <FieldLabel htmlFor="areas">Service areas</FieldLabel>
-        <Textarea
-          id="areas"
-          value={draft.serviceAreas ?? ""}
-          onChange={(event) => update("serviceAreas", event.target.value)}
-        />
-      </Field>
     </FieldGroup>
   )
 }
