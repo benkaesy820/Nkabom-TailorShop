@@ -1,0 +1,27 @@
+# Dependencies and AdonisJS build
+node_modules/
+build/
+dist/
+.adonisjs/
+tmp/*
+!tmp/.gitkeep
+coverage/
+*.zip
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Frontend assets compiled code
+public/assets/
+
+# Build tools
+npm-debug.log
+yarn-error.log
+
+# Editors and platform files
+.fleet/
+.idea/
+.vscode/
+.DS_Store

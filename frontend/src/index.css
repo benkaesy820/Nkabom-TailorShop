@@ -1,0 +1,208 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/cormorant-garamond";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: "Cormorant Garamond Variable", "Cormorant Garamond", Georgia, serif;
+  --font-heading: var(--font-sans);
+  --font-sans: "Inter Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-notice: var(--notice);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-brand-accent: var(--brand-accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #fbf9f4;
+  --foreground: #26201b;
+  --card: #ffffff;
+  --card-foreground: #26201b;
+  --popover: #ffffff;
+  --popover-foreground: #26201b;
+  --primary: #ba5436;
+  --primary-hover: #a34327;
+  --primary-foreground: #ffffff;
+  --brand-accent: #e09f3e;
+  --accent-subtle: #fdf5e8;
+  --secondary: #f4ede3;
+  --secondary-foreground: #26201b;
+  --muted: #f4ede3;
+  --muted-foreground: #6f645c;
+  --accent: #fdf5e8;
+  --accent-foreground: #26201b;
+  --destructive: #c53030;
+  --success: #2e7d5b;
+  --warning: #e09f3e;
+  --notice: #2b6cb0;
+  --border: #e7dfd6;
+  --input: #e7dfd6;
+  --ring: #ba5436;
+  --chart-1: #ba5436;
+  --chart-2: #e09f3e;
+  --chart-3: #2e7d5b;
+  --chart-4: #2b6cb0;
+  --chart-5: #c53030;
+  --radius: 0.625rem;
+  --sidebar: #f4ede3;
+  --sidebar-foreground: #26201b;
+  --sidebar-primary: #ba5436;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fdf5e8;
+  --sidebar-accent-foreground: #26201b;
+  --sidebar-border: #e7dfd6;
+  --sidebar-ring: #ba5436;
+}
+
+.dark {
+  --background: #14110f;
+  --foreground: #fbf9f4;
+  --card: #1d1815;
+  --card-foreground: #fbf9f4;
+  --popover: #1d1815;
+  --popover-foreground: #fbf9f4;
+  --primary: #e27555;
+  --primary-hover: #f08a69;
+  --primary-foreground: #14110f;
+  --brand-accent: #f0b359;
+  --accent-subtle: #29231f;
+  --secondary: #29231f;
+  --secondary-foreground: #fbf9f4;
+  --muted: #29231f;
+  --muted-foreground: #a89e94;
+  --accent: #29231f;
+  --accent-foreground: #fbf9f4;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #f0b359;
+  --notice: #60a5fa;
+  --border: #3d352f;
+  --input: #3d352f;
+  --ring: #e27555;
+  --chart-1: #e27555;
+  --chart-2: #f0b359;
+  --chart-3: #4ade80;
+  --chart-4: #60a5fa;
+  --chart-5: #f87171;
+  --sidebar: #1d1815;
+  --sidebar-foreground: #fbf9f4;
+  --sidebar-primary: #e27555;
+  --sidebar-primary-foreground: #14110f;
+  --sidebar-accent: #29231f;
+  --sidebar-accent-foreground: #fbf9f4;
+  --sidebar-border: #3d352f;
+  --sidebar-ring: #e27555;
+}
+
+.nkabom-logo,
+.nkabom-logo[data-tone="light"] {
+  --logo-coral: #ba5436;
+  --logo-ink: #26201b;
+  --logo-gold: #e09f3e;
+  --logo-cutout: #fbf9f4;
+  --logo-muted: #6f645c;
+  --logo-badge-background: #ffffff;
+  --logo-badge-border: #26201b;
+}
+
+.dark .nkabom-logo[data-tone="auto"],
+.nkabom-logo[data-tone="dark"] {
+  --logo-coral: #e27555;
+  --logo-ink: #fbf9f4;
+  --logo-gold: #f0b359;
+  --logo-cutout: #fbf9f4;
+  --logo-muted: #a89e94;
+  --logo-badge-background: #1d1815;
+  --logo-badge-border: #fbf9f4;
+}
+
+.nkabom-logo[data-tone="mono"] {
+  --logo-coral: currentColor;
+  --logo-ink: currentColor;
+  --logo-gold: currentColor;
+  --logo-cutout: var(--background);
+  --logo-muted: currentColor;
+  --logo-badge-background: var(--background);
+  --logo-badge-border: currentColor;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+  input[data-slot="input-group-control"]:-webkit-autofill,
+  input[data-slot="input-group-control"]:-webkit-autofill:hover,
+  input[data-slot="input-group-control"]:-webkit-autofill:focus,
+  input[data-slot="input-group-control"]:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--foreground) !important;
+    caret-color: var(--foreground);
+    -webkit-box-shadow: 0 0 0 1000px var(--card) inset !important;
+    box-shadow: 0 0 0 1000px var(--card) inset !important;
+    transition: background-color 9999s ease-out 0s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
