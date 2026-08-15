@@ -1,0 +1,41 @@
+CREATE TABLE seller_applications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  primary_category TEXT,
+  specialities TEXT NOT NULL DEFAULT '[]',
+  years_of_experience TEXT,
+  professional_bio TEXT,
+  languages TEXT NOT NULL DEFAULT '[]',
+  atelier_name TEXT,
+  business_type TEXT CHECK (business_type IS NULL OR business_type IN ('individual', 'sole_proprietor', 'registered_company', 'cooperative')),
+  registration_number TEXT,
+  region TEXT,
+  city TEXT,
+  address TEXT,
+  service_areas TEXT,
+  phone TEXT,
+  whatsapp TEXT,
+  accepts_commissions INTEGER NOT NULL DEFAULT 0 CHECK (accepts_commissions IN (0, 1)),
+  offers_alterations INTEGER NOT NULL DEFAULT 0 CHECK (offers_alterations IN (0, 1)),
+  offers_ready_made INTEGER NOT NULL DEFAULT 0 CHECK (offers_ready_made IN (0, 1)),
+  offers_in_person_fittings INTEGER NOT NULL DEFAULT 0 CHECK (offers_in_person_fittings IN (0, 1)),
+  accepts_remote_orders INTEGER NOT NULL DEFAULT 0 CHECK (accepts_remote_orders IN (0, 1)),
+  min_lead_time_days INTEGER CHECK (min_lead_time_days IS NULL OR min_lead_time_days BETWEEN 1 AND 365),
+  max_lead_time_days INTEGER CHECK (max_lead_time_days IS NULL OR max_lead_time_days BETWEEN 1 AND 365),
+  monthly_capacity INTEGER CHECK (monthly_capacity IS NULL OR monthly_capacity BETWEEN 1 AND 10000),
+  additional_services TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'approved', 'rejected')),
+  submitted_at TEXT,
+  reviewed_at TEXT,
+  reviewed_by_admin_id INTEGER,
+  review_notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (max_lead_time_days IS NULL OR min_lead_time_days IS NULL OR max_lead_time_days >= min_lead_time_days),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by_admin_id) REFERENCES users(id) ON DELETE SET NULL
+) STRICT;
+-- statement-breakpoint
+CREATE INDEX seller_applications_status_idx ON seller_applications(status);
+-- statement-breakpoint
+CREATE INDEX seller_applications_reviewed_by_idx ON seller_applications(reviewed_by_admin_id);

@@ -1,11 +1,16 @@
+export type AccountRole = "normal" | "seller" | "administrator"
+export type AccountStatus = "active" | "suspended" | "disabled"
+
 export type Account = {
   id: number
   fullName: string | null
   email: string
-  accountType: "buyer" | "seller"
-  accountStatus: "active" | "suspended" | "disabled"
+  role: AccountRole
+  accountStatus: AccountStatus
   emailVerifiedAt: string | null
-  isAdministrator: boolean
+  createdAt: string
+  updatedAt: string
+  version: number
   initials: string
 }
 
@@ -48,9 +53,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
               "message" in payload.errors[0] &&
               typeof payload.errors[0].message === "string"
             ? payload.errors[0].message
-          : response.status === 401
-            ? "The email address or password is incorrect."
-            : "We could not complete that request. Please try again."
+            : response.status === 401
+              ? "The email address or password is incorrect."
+              : "We could not complete that request. Please try again."
     throw new Error(message)
   }
 

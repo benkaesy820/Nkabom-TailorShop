@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
   ArrowDown01Icon,
   ArrowLeft02Icon,
@@ -22,6 +22,7 @@ import {
   ViewOffIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
   NkabomLogo,
@@ -73,8 +74,12 @@ import {
   verifyEmail,
   type Account,
 } from "@/lib/auth"
+import { queryKeys } from "@/lib/query-client"
+import { useRealtimeSync } from "@/lib/realtime"
 import { cn } from "@/lib/utils"
+import { AdminAccountsPage } from "@/pages/admin/admin-accounts-page"
 import { AdminOverviewPage } from "@/pages/admin/admin-overview-page"
+import { AdminSellerApplicationsPage } from "@/pages/admin/admin-seller-applications-page"
 
 const navigation = [
   {
@@ -263,10 +268,10 @@ const authContent: Record<
     submitLabel: "Sign in",
   },
   register: {
-    title: "Create your buyer account",
+    title: "Create your Nkabom account",
     description:
       "Discover trusted Ghanaian makers and manage every commission in one place.",
-    submitLabel: "Create buyer account",
+    submitLabel: "Create account",
   },
   forgot: {
     title: "Reset your password",
@@ -276,7 +281,7 @@ const authContent: Record<
   },
   "verify-email": {
     title: "Verify your email",
-    description: "Confirm this email address to activate your buyer account.",
+    description: "Confirm this email address to activate your Nkabom account.",
     submitLabel: "Verify email",
   },
   "reset-password": {
@@ -416,7 +421,7 @@ function AuthPage({
         toast({
           title: "Welcome back",
           message: `Signed in as ${result.fullName ?? result.email}.`,
-          tag: "Buyer Access",
+          tag: "Customer Access",
           variant: "success",
         })
         window.location.hash = "#discover"
@@ -525,7 +530,7 @@ function AuthPage({
                   Your trusted path from idea to finished craft.
                 </h2>
                 <p className="text-xs leading-5 opacity-85 sm:text-sm sm:leading-6">
-                  Create one buyer account to explore makers and keep future
+                  Create one account to explore makers and keep future
                   marketplace activity connected to your identity.
                 </p>
               </div>
@@ -537,7 +542,7 @@ function AuthPage({
               </p>
               <div className="mt-2.5 flex items-center justify-between text-xs opacity-85">
                 <span className="text-[0.6875rem] font-medium sm:text-xs">
-                  Buyer accounts by default
+                  Normal accounts by default
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2 py-0.5 text-[0.6875rem] font-medium text-primary-foreground">
                   Seller access by approval
@@ -699,11 +704,6 @@ function AuthPage({
                           >
                             Email address
                           </FieldLabel>
-                          {mode === "register" ? (
-                            <span className="cursor-pointer text-[0.6875rem] font-medium text-[#e09f3e] hover:underline">
-                              Use Phone / MoMo instead
-                            </span>
-                          ) : null}
                         </div>
                         <InputGroup
                           className={cn(
@@ -1065,7 +1065,7 @@ function AuthPage({
                       className="font-semibold text-primary hover:underline"
                       href={authHashes.register}
                     >
-                      Create a buyer account
+                      Create an account
                     </a>
                     <span aria-hidden="true">·</span>
                     <a
@@ -1116,7 +1116,7 @@ function IconTooltip({
   children,
 }: {
   label: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <Tooltip>
@@ -1126,9 +1126,45 @@ function IconTooltip({
   )
 }
 
+function AdminAccessState({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children?: ReactNode
+}) {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background px-5 text-center text-foreground">
+      <div className="flex max-w-md flex-col items-center gap-3 rounded-2xl border bg-card p-7 shadow-sm">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-primary">
+          <HugeiconsIcon icon={Shield01Icon} />
+        </span>
+        <h1 className="font-heading text-xl font-semibold">{title}</h1>
+        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        {children ? <div className="pt-1">{children}</div> : null}
+      </div>
+    </main>
+  )
+}
+
 export function App() {
   const { toast } = useToast()
-  const [account, setAccount] = useState<Account | null>(null)
+  const queryClient = useQueryClient()
+  const accountQuery = useQuery({
+    queryKey: queryKeys.account,
+    queryFn: async () => {
+      try {
+        return await getCurrentAccount()
+      } catch {
+        return null
+      }
+    },
+  })
+  const account = accountQuery.data ?? null
+  const accountLoaded = !accountQuery.isPending
+  useRealtimeSync(account)
   const [routeHash, setRouteHash] = useState(
     window.location.hash || "#discover"
   )
@@ -1146,24 +1182,12 @@ export function App() {
   const desktopSearchRef = useRef<HTMLInputElement>(null)
   const compactSearchRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    let active = true
-    getCurrentAccount()
-      .then((currentAccount) => {
-        if (active) setAccount(currentAccount)
-      })
-      .catch(() => {
-        if (active) setAccount(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [])
-
   async function handleSignOut() {
     try {
       await signOut()
-      setAccount(null)
+      queryClient.setQueryData<Account | null>(queryKeys.account, null)
+      queryClient.removeQueries({ queryKey: ["admin"] })
+      queryClient.removeQueries({ queryKey: queryKeys.sellerApplication })
       toast({
         title: "Signed out",
         message: "Your Nkabom session has ended safely.",
@@ -1268,23 +1292,80 @@ export function App() {
   if (authMode) {
     return (
       <TooltipProvider delayDuration={250}>
-        <AuthPage key={authMode} mode={authMode} onAuthenticated={setAccount} />
+        <AuthPage
+          key={authMode}
+          mode={authMode}
+          onAuthenticated={(authenticatedAccount) =>
+            queryClient.setQueryData(queryKeys.account, authenticatedAccount)
+          }
+        />
       </TooltipProvider>
     )
   }
 
-  if (routeHash === "#admin/overview") {
+  if (routeHash.startsWith("#admin/")) {
+    if (!accountLoaded) {
+      return (
+        <TooltipProvider delayDuration={250}>
+          <AdminAccessState
+            description="Checking your current Nkabom role…"
+            title="Checking administrator access"
+          />
+        </TooltipProvider>
+      )
+    }
+
+    if (!account) {
+      return (
+        <TooltipProvider delayDuration={250}>
+          <AdminAccessState
+            description="Sign in with an administrator account to open this workspace."
+            title="Administrator sign-in required"
+          >
+            <Button asChild>
+              <a href="#sign-in">Sign in</a>
+            </Button>
+          </AdminAccessState>
+        </TooltipProvider>
+      )
+    }
+
+    if (account.role !== "administrator") {
+      return (
+        <TooltipProvider delayDuration={250}>
+          <AdminAccessState
+            description="Your current account does not have the administrator role."
+            title="Administrator access required"
+          >
+            <Button asChild variant="outline">
+              <a href="#discover">Return to marketplace</a>
+            </Button>
+          </AdminAccessState>
+        </TooltipProvider>
+      )
+    }
+
+    const adminPage =
+      routeHash === "#admin/accounts" ? (
+        <AdminAccountsPage currentAccountId={account.id} />
+      ) : routeHash === "#admin/seller-applications" ? (
+        <AdminSellerApplicationsPage />
+      ) : (
+        <AdminOverviewPage />
+      )
+
     return (
       <TooltipProvider delayDuration={250}>
         <AdminLayout
           account={account}
+          currentHash={routeHash}
           onSignOut={() => {
             void handleSignOut().then(() => {
               window.location.hash = "#discover"
             })
           }}
         >
-          <AdminOverviewPage />
+          {adminPage}
         </AdminLayout>
       </TooltipProvider>
     )
@@ -1686,9 +1767,11 @@ export function App() {
                             {account.fullName ?? account.email}
                           </span>
                           <span className="text-[0.625rem] leading-tight text-muted-foreground">
-                            {account.accountType === "seller"
-                              ? "Guild Master"
-                              : "Verified Buyer"}
+                            {account.role === "administrator"
+                              ? "Administrator"
+                              : account.role === "seller"
+                                ? "Seller"
+                                : "Customer"}
                           </span>
                         </div>
                         <HugeiconsIcon
@@ -1786,15 +1869,28 @@ export function App() {
                             <span>Saved Craft Portfolio</span>
                           </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          asChild
-                          className="min-h-10 rounded-lg px-3 text-sm"
-                        >
-                          <a href="#become-a-seller">
-                            <HugeiconsIcon icon={Store01Icon} />
-                            <span>Become a seller</span>
-                          </a>
-                        </DropdownMenuItem>
+                        {account.role === "normal" ? (
+                          <DropdownMenuItem
+                            asChild
+                            className="min-h-10 rounded-lg px-3 text-sm"
+                          >
+                            <a href="#become-a-seller">
+                              <HugeiconsIcon icon={Store01Icon} />
+                              <span>Become a seller</span>
+                            </a>
+                          </DropdownMenuItem>
+                        ) : null}
+                        {account.role === "administrator" ? (
+                          <DropdownMenuItem
+                            asChild
+                            className="min-h-10 rounded-lg px-3 text-sm"
+                          >
+                            <a href="#admin/overview">
+                              <HugeiconsIcon icon={Shield01Icon} />
+                              <span>Administration</span>
+                            </a>
+                          </DropdownMenuItem>
+                        ) : null}
                       </DropdownMenuGroup>
 
                       <DropdownMenuSeparator />

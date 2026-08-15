@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   ArrowLeft02Icon,
   ArrowRight02Icon,
@@ -33,6 +34,7 @@ import {
   type SellerApplicationData,
   type SellerApplicationDraft,
 } from "@/lib/seller-application"
+import { queryKeys } from "@/lib/query-client"
 import { cn } from "@/lib/utils"
 
 const categories = [
@@ -103,16 +105,31 @@ const emptyDraft: SellerApplicationDraft = {
 }
 
 function toDraft(application: SellerApplicationData): SellerApplicationDraft {
-  const {
-    status: _status,
-    submittedAt: _submittedAt,
-    updatedAt: _updatedAt,
-    ...draft
-  } = application
-  void _status
-  void _submittedAt
-  void _updatedAt
-  return draft
+  return {
+    primaryCategory: application.primaryCategory,
+    specialities: application.specialities,
+    yearsOfExperience: application.yearsOfExperience,
+    professionalBio: application.professionalBio,
+    languages: application.languages,
+    atelierName: application.atelierName,
+    businessType: application.businessType,
+    registrationNumber: application.registrationNumber,
+    region: application.region,
+    city: application.city,
+    address: application.address,
+    serviceAreas: application.serviceAreas,
+    phone: application.phone,
+    whatsapp: application.whatsapp,
+    acceptsCommissions: application.acceptsCommissions,
+    offersAlterations: application.offersAlterations,
+    offersReadyMade: application.offersReadyMade,
+    offersInPersonFittings: application.offersInPersonFittings,
+    acceptsRemoteOrders: application.acceptsRemoteOrders,
+    minLeadTimeDays: application.minLeadTimeDays,
+    maxLeadTimeDays: application.maxLeadTimeDays,
+    monthlyCapacity: application.monthlyCapacity,
+    additionalServices: application.additionalServices,
+  }
 }
 function splitList(value: string) {
   return value
@@ -130,34 +147,23 @@ export function SellerApplication({
   onNavigate?: (hash: string) => void
 }) {
   const { toast } = useToast()
-  const [application, setApplication] = useState<SellerApplicationData | null>(
-    null
-  )
+  const queryClient = useQueryClient()
+  const applicationQuery = useQuery({
+    queryKey: queryKeys.sellerApplication,
+    queryFn: getSellerApplication,
+    enabled: Boolean(account),
+  })
+  const application = applicationQuery.data ?? null
   const [draft, setDraft] = useState<SellerApplicationDraft>(emptyDraft)
   const [step, setStep] = useState(0)
-  const [loading, setLoading] = useState(Boolean(account))
+  const loading = Boolean(account) && applicationQuery.isPending
   const [saving, setSaving] = useState(false)
   const [acknowledged, setAcknowledged] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (!account) {
-      return
-    }
-    getSellerApplication()
-      .then((result) => {
-        setApplication(result)
-        if (result) setDraft(toDraft(result))
-      })
-      .catch((error: unknown) =>
-        toast({
-          title: "Application unavailable",
-          message: error instanceof Error ? error.message : "Please try again.",
-          variant: "error",
-        })
-      )
-      .finally(() => setLoading(false))
-  }, [account, toast])
+    if (applicationQuery.data) setDraft(toDraft(applicationQuery.data))
+  }, [applicationQuery.data])
 
   function update<K extends keyof SellerApplicationDraft>(
     key: K,
@@ -216,22 +222,22 @@ export function SellerApplication({
   async function save(showToast = true) {
     setSaving(true)
     try {
-      const result = await saveSellerApplication(draft)
-      setApplication(result)
+      const result = await saveSellerApplication(draft, application?.version ?? 0)
+      queryClient.setQueryData(queryKeys.sellerApplication, result)
       if (showToast)
         toast({
           title: "Draft saved",
           message: "Your seller application draft is saved.",
           variant: "success",
         })
-      return true
+      return result
     } catch (error) {
       toast({
         title: "Draft not saved",
         message: error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       })
-      return false
+      return null
     } finally {
       setSaving(false)
     }
@@ -245,20 +251,22 @@ export function SellerApplication({
       !acknowledged ||
       !validateStep(0) ||
       !validateStep(1) ||
-      !validateStep(2) ||
-      !(await save(false))
+      !validateStep(2)
     )
       return
+    const saved = await save(false)
+    if (!saved) return
     setSaving(true)
     try {
-      const result = await submitSellerApplication()
-      setApplication(result)
+      const result = await submitSellerApplication(saved.version)
+      queryClient.setQueryData(queryKeys.sellerApplication, result)
       toast({
         title: "Application submitted",
         message: "Your application is ready for administrator review.",
         variant: "success",
       })
     } catch (error) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sellerApplication })
       toast({
         title: "Application not submitted",
         message: error instanceof Error ? error.message : "Please try again.",
@@ -273,14 +281,25 @@ export function SellerApplication({
     return (
       <Centered
         title="Sign in to apply"
-        description="Seller applications belong to an existing verified buyer account."
+        description="Seller applications belong to an existing verified Nkabom account."
       >
         <Button asChild>
           <a href="#sign-in">Sign in</a>
         </Button>
       </Centered>
     )
-  if (account.accountType === "seller")
+  if (applicationQuery.isError)
+    return (
+      <Centered
+        title="Application unavailable"
+        description={applicationQuery.error.message}
+      >
+        <Button variant="outline" onClick={() => void applicationQuery.refetch()}>
+          Try again
+        </Button>
+      </Centered>
+    )
+  if (account.role === "seller")
     return (
       <Centered
         title="Seller access active"
@@ -288,6 +307,17 @@ export function SellerApplication({
       >
         <Button onClick={() => onNavigate?.("#discover")}>
           Return to marketplace
+        </Button>
+      </Centered>
+    )
+  if (account.role === "administrator")
+    return (
+      <Centered
+        title="Administrator account"
+        description="Administrator accounts manage the marketplace and cannot submit seller applications."
+      >
+        <Button onClick={() => onNavigate?.("#admin/overview")}>
+          Open administration
         </Button>
       </Centered>
     )
@@ -302,7 +332,7 @@ export function SellerApplication({
     return (
       <Centered
         title="Application submitted"
-        description="Your application is waiting for administrator review. You can continue using your buyer account while it is reviewed."
+        description="Your application is waiting for administrator review. You can continue using your normal account while it is reviewed."
       >
         <Button variant="outline" onClick={() => onNavigate?.("#discover")}>
           Return to marketplace
@@ -320,10 +350,18 @@ export function SellerApplication({
           Apply to sell on Nkabom
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Tell us about your craft, business and working capacity. Your buyer
+          Tell us about your craft, business and working capacity. Your normal
           account remains active throughout review.
         </p>
       </header>
+      {application?.reviewNotes &&
+      (application.status === "rejected" ||
+        (application.status === "draft" && application.reviewedAt)) ? (
+        <div className="rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm">
+          <p className="font-semibold text-foreground">Application needs changes</p>
+          <p className="mt-1 leading-6 text-muted-foreground">{application.reviewNotes}</p>
+        </div>
+      ) : null}
       <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <nav
           aria-label="Application progress"

@@ -19,7 +19,6 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { NkabomLogo } from "@/components/brand/nkabom-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import {
   Sheet,
   SheetClose,
@@ -58,15 +58,21 @@ const navigationGroups = [
       },
       {
         label: "Seller applications",
+        href: "#admin/seller-applications",
         icon: FileValidationIcon,
-        available: false,
+        available: true,
       },
     ],
   },
   {
     label: "Marketplace",
     items: [
-      { label: "Accounts", icon: UserGroupIcon, available: false },
+      {
+        label: "Accounts",
+        href: "#admin/accounts",
+        icon: UserGroupIcon,
+        available: true,
+      },
       { label: "Sellers", icon: Store01Icon, available: false },
       { label: "Trust & safety", icon: Shield01Icon, available: false },
     ],
@@ -80,19 +86,25 @@ const navigationGroups = [
   },
 ] as const
 
+const pageTitles: Record<string, string> = {
+  "#admin/overview": "Overview",
+  "#admin/seller-applications": "Seller applications",
+  "#admin/accounts": "Accounts",
+}
+
 export function AdminLayout({
   account,
+  currentHash,
   children,
   onSignOut,
 }: {
-  account: Account | null
+  account: Account
+  currentHash: string
   children: ReactNode
   onSignOut: () => void
 }) {
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
-  const roleLabel = account?.isAdministrator
-    ? "Administrator"
-    : "Layout preview"
+  const pageTitle = pageTitles[currentHash] ?? "Overview"
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-background text-foreground">
@@ -133,14 +145,14 @@ export function AdminLayout({
                 Navigate the Nkabom administration workspace.
               </SheetDescription>
             </SheetHeader>
-            <SidebarContent mobile />
+            <SidebarContent currentHash={currentHash} mobile />
           </SheetContent>
         </Sheet>
 
         <div className="flex min-w-0 items-center gap-2 text-sm">
           <span className="hidden text-muted-foreground sm:inline">Admin</span>
           <span className="hidden text-border sm:inline">/</span>
-          <span className="truncate font-semibold">Overview</span>
+          <span className="truncate font-semibold">{pageTitle}</span>
         </div>
 
         <div className="ml-auto flex min-w-0 items-center justify-end gap-1 sm:gap-2">
@@ -180,14 +192,14 @@ export function AdminLayout({
                 type="button"
               >
                 <span className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
-                  {account?.initials ?? "AD"}
+                  {account.initials}
                 </span>
                 <span className="hidden min-w-0 flex-1 flex-col text-left md:flex">
                   <span className="truncate text-xs font-semibold">
-                    {account?.fullName ?? "Administrator"}
+                    {account.fullName ?? "Administrator"}
                   </span>
                   <span className="text-[0.625rem] text-muted-foreground">
-                    {roleLabel}
+                    Administrator
                   </span>
                 </span>
                 <HugeiconsIcon
@@ -205,10 +217,10 @@ export function AdminLayout({
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="px-2.5 py-2">
                   <span className="block truncate text-xs font-semibold">
-                    {account?.fullName ?? "Administrator"}
+                    {account.fullName ?? "Administrator"}
                   </span>
                   <span className="block truncate text-[0.6875rem] font-normal text-muted-foreground">
-                    {account?.email ?? roleLabel}
+                    {account.email}
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -218,12 +230,10 @@ export function AdminLayout({
                     Return to marketplace
                   </a>
                 </DropdownMenuItem>
-                {account ? (
-                  <DropdownMenuItem onSelect={onSignOut} variant="destructive">
-                    <HugeiconsIcon icon={Logout01Icon} />
-                    Sign out
-                  </DropdownMenuItem>
-                ) : null}
+                <DropdownMenuItem onSelect={onSignOut} variant="destructive">
+                  <HugeiconsIcon icon={Logout01Icon} />
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,7 +242,7 @@ export function AdminLayout({
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-64 shrink-0 border-r bg-card lg:block">
-          <SidebarContent />
+          <SidebarContent currentHash={currentHash} />
         </aside>
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
@@ -242,7 +252,13 @@ export function AdminLayout({
   )
 }
 
-function SidebarContent({ mobile = false }: { mobile?: boolean }) {
+function SidebarContent({
+  currentHash,
+  mobile = false,
+}: {
+  currentHash: string
+  mobile?: boolean
+}) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-20 items-center border-b px-4">
@@ -265,13 +281,16 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
               {group.label}
             </p>
             {group.items.map((item) => {
+              const active = item.available && item.href === currentHash
               const content = (
                 <span
                   className={cn(
                     "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm transition-[background-color,color,transform]",
-                    item.available
+                    active
                       ? "bg-primary font-semibold text-primary-foreground shadow-xs active:scale-[0.99]"
-                      : "cursor-default text-muted-foreground"
+                      : item.available
+                        ? "text-foreground hover:bg-muted active:scale-[0.99]"
+                        : "cursor-default text-muted-foreground"
                   )}
                 >
                   <HugeiconsIcon aria-hidden="true" icon={item.icon} />
@@ -303,8 +322,8 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
 
       <div className="border-t p-3">
         <p className="rounded-xl bg-muted/45 px-3 py-2.5 text-[0.6875rem] leading-5 text-muted-foreground">
-          Layout preview. Operational pages and live administrator data come
-          next.
+          Role-protected operations workspace. Database changes are persisted in
+          Turso.
         </p>
       </div>
     </div>

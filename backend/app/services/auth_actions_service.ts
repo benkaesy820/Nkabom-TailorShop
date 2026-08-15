@@ -1,13 +1,13 @@
 import env from '#start/env'
-import db from '@adonisjs/lucid/services/db'
+import { databaseConnection, retryTursoConflict } from '#database/client'
+import { updatePassword } from '#repositories/users_repository'
 import hash from '@adonisjs/core/services/hash'
 import mail from '@adonisjs/mail/services/main'
 import { createHash, randomBytes } from 'node:crypto'
-import { DateTime } from 'luxon'
 
-type Purpose = 'verify_email' | 'reset_password'
+export type AuthActionPurpose = 'verify_email' | 'reset_password'
 
-const ttlMinutes: Record<Purpose, number> = {
+const ttlMinutes: Record<AuthActionPurpose, number> = {
   verify_email: 60 * 24,
   reset_password: 30,
 }
@@ -24,21 +24,29 @@ function publicUrl(path: string, token: string) {
 
 export async function issueAuthAction(
   user: { id: number; email: string; fullName: string | null },
-  purpose: Purpose
+  purpose: AuthActionPurpose
 ) {
   const token = randomBytes(32).toString('base64url')
-  await db
-    .from('auth_action_tokens')
-    .where({ user_id: user.id, purpose })
-    .whereNull('used_at')
-    .update({ used_at: DateTime.utc().toSQL() })
-  await db.table('auth_action_tokens').insert({
-    user_id: user.id,
-    purpose,
-    token_hash: digest(token),
-    expires_at: DateTime.utc().plus({ minutes: ttlMinutes[purpose] }).toSQL(),
-    created_at: DateTime.utc().toSQL(),
-  })
+  const now = new Date()
+  const createdAt = now.toISOString()
+  const expiresAt = new Date(now.getTime() + ttlMinutes[purpose] * 60_000).toISOString()
+
+  await retryTursoConflict(() =>
+    databaseConnection().batch(
+      [
+        {
+          sql: `UPDATE auth_action_tokens SET used_at = ? WHERE user_id = ? AND purpose = ? AND used_at IS NULL`,
+          args: [createdAt, user.id, purpose],
+        },
+        {
+          sql: `INSERT INTO auth_action_tokens (user_id, purpose, token_hash, expires_at, created_at)
+                VALUES (?, ?, ?, ?, ?)`,
+          args: [user.id, purpose, digest(token), expiresAt, createdAt],
+        },
+      ],
+      'concurrent'
+    )
+  )
 
   const verify = purpose === 'verify_email'
   const actionUrl = publicUrl(verify ? '/#verify-email' : '/#reset-password', token)
@@ -55,28 +63,25 @@ export async function issueAuthAction(
   })
 }
 
-export async function consumeAuthAction(token: string, purpose: Purpose) {
-  return db.transaction(async (trx) => {
-    const record = await trx
-      .from('auth_action_tokens')
-      .where({ token_hash: digest(token), purpose })
-      .whereNull('used_at')
-      .where('expires_at', '>', DateTime.utc().toSQL())
-      .forUpdate()
-      .first()
-    if (!record) return null
-    await trx
-      .from('auth_action_tokens')
-      .where('id', record.id)
-      .update({ used_at: DateTime.utc().toSQL() })
-    return { userId: Number(record.user_id), trx }
-  })
+export async function consumeAuthAction(token: string, purpose: AuthActionPurpose) {
+  const usedAt = new Date().toISOString()
+  const row: unknown = await databaseConnection().get(
+    `UPDATE auth_action_tokens
+     SET used_at = ?
+     WHERE token_hash = ? AND purpose = ? AND used_at IS NULL AND expires_at > ?
+     RETURNING user_id`,
+    [usedAt, digest(token), purpose, usedAt]
+  )
+
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return null
+  const value = Reflect.get(row, 'user_id')
+  const userId = typeof value === 'bigint' ? Number(value) : value
+  if (typeof userId !== 'number' || !Number.isSafeInteger(userId)) {
+    throw new Error('Database returned an invalid auth action user id')
+  }
+  return { userId }
 }
 
 export async function setPassword(userId: number, password: string) {
-  const passwordHash = await hash.make(password)
-  await db
-    .from('users')
-    .where('id', userId)
-    .update({ password: passwordHash, updated_at: DateTime.utc().toSQL() })
+  await updatePassword(userId, await hash.make(password))
 }

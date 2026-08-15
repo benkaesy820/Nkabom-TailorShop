@@ -4,6 +4,7 @@ const optionalText = (maxLength: number) =>
   vine.string().trim().maxLength(maxLength).nullable().optional()
 
 export const sellerApplicationDraftValidator = vine.create({
+  expectedVersion: vine.number().min(0),
   primaryCategory: optionalText(80),
   specialities: vine.array(vine.string().trim().maxLength(80)).maxLength(20).optional(),
   yearsOfExperience: optionalText(40),
@@ -30,4 +31,8 @@ export const sellerApplicationDraftValidator = vine.create({
   maxLeadTimeDays: vine.number().min(1).max(365).nullable().optional(),
   monthlyCapacity: vine.number().min(1).max(10000).nullable().optional(),
   additionalServices: optionalText(2000),
+})
+
+export const sellerApplicationSubmitValidator = vine.create({
+  expectedVersion: vine.number().min(1),
 })

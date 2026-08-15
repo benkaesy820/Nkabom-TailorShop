@@ -1,6 +1,12 @@
-export type SellerApplicationStatus = "draft" | "submitted"
+export type SellerApplicationStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "rejected"
 
 export type SellerApplicationData = {
+  id: number
+  userId: number
   primaryCategory: string | null
   specialities: string[]
   yearsOfExperience: string | null
@@ -31,12 +37,26 @@ export type SellerApplicationData = {
   additionalServices: string | null
   status: SellerApplicationStatus
   submittedAt: string | null
-  updatedAt: string | null
+  reviewedAt: string | null
+  reviewedByAdminId: number | null
+  reviewNotes: string | null
+  createdAt: string
+  updatedAt: string
+  version: number
 }
 
 export type SellerApplicationDraft = Omit<
   SellerApplicationData,
-  "status" | "submittedAt" | "updatedAt"
+  | "id"
+  | "userId"
+  | "status"
+  | "submittedAt"
+  | "reviewedAt"
+  | "reviewedByAdminId"
+  | "reviewNotes"
+  | "createdAt"
+  | "updatedAt"
+  | "version"
 >
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -46,6 +66,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       Accept: "application/json",
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
     },
   })
   const payload: unknown = await response.json().catch(() => null)
@@ -66,10 +87,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getSellerApplication = () =>
   request<SellerApplicationData | null>("")
-export const saveSellerApplication = (draft: SellerApplicationDraft) =>
+export const saveSellerApplication = (draft: SellerApplicationDraft, expectedVersion: number) =>
   request<SellerApplicationData>("", {
     method: "PUT",
-    body: JSON.stringify(draft),
+    headers: { "Idempotency-Key": crypto.randomUUID() },
+    body: JSON.stringify({ ...draft, expectedVersion }),
   })
-export const submitSellerApplication = () =>
-  request<SellerApplicationData>("/submit", { method: "POST" })
+export const submitSellerApplication = (expectedVersion: number) =>
+  request<SellerApplicationData>("/submit", {
+    method: "POST",
+    headers: { "Idempotency-Key": crypto.randomUUID() },
+    body: JSON.stringify({ expectedVersion }),
+  })
